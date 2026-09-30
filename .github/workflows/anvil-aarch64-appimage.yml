@@ -55,9 +55,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             binutils file wget squashfs-tools desktop-file-utils \
             libgl1 libegl1 libxkbcommon0 libxcb-cursor0
-          # UPX must NOT be present: the upstream spec sets upx=True and UPX
-          # can corrupt Qt libs on aarch64.
-          ! command -v upx
+          # UPX must NOT be used: the upstream spec sets upx=True and UPX can
+          # corrupt Qt libs on aarch64. The runner image ships it, so remove it.
+          sudo apt-get remove -y upx-ucl upx 2>/dev/null || true
+          sudo rm -f /usr/bin/upx /usr/local/bin/upx
+          if command -v upx; then echo "upx still present"; exit 1; fi
 
       - name: Read version
         id: meta
@@ -87,7 +89,7 @@ jobs:
       - name: PyInstaller build (upstream spec)
         working-directory: src
         run: |
-          .venv/bin/pyinstaller anvil-organizer.spec --noconfirm 2>&1 | tail -20
+          .venv/bin/pyinstaller anvil-organizer.spec --noconfirm --noupx 2>&1 | tail -20
           test -x dist/anvil-organizer/anvil-organizer
 
       - name: Assemble AppDir
